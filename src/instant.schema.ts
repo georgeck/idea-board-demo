@@ -1,47 +1,53 @@
-// Docs: https://www.instantdb.com/docs/modeling-data
-
 import { i } from "@instantdb/react";
 
 const _schema = i.schema({
   entities: {
-    $files: i.entity({
-      path: i.string().unique().indexed(),
-      url: i.string(),
-    }),
     $users: i.entity({
       email: i.string().unique().indexed().optional(),
-      imageURL: i.string().optional(),
-      type: i.string().optional(),
     }),
-    todos: i.entity({
-      text: i.string(),
-      done: i.boolean(),
-      createdAt: i.number(),
+    profiles: i.entity({
+      displayName: i.string(),
+    }),
+    ideas: i.entity({
+      content: i.string(),
+      createdAt: i.number().indexed(),
+      x: i.number(),
+      y: i.number(),
+    }),
+    reactions: i.entity({
+      emoji: i.string(),
     }),
   },
   links: {
-    $usersLinkedPrimaryUser: {
+    profileUser: {
       forward: {
-        on: "$users",
+        on: "profiles",
         has: "one",
-        label: "linkedPrimaryUser",
+        label: "$user",
         onDelete: "cascade",
       },
-      reverse: {
-        on: "$users",
-        has: "many",
-        label: "linkedGuestUsers",
-      },
+      reverse: { on: "$users", has: "one", label: "profile" },
     },
-  },
-  rooms: {
-    todos: {
-      presence: i.entity({}),
+    ideaCreator: {
+      forward: { on: "ideas", has: "one", label: "creator" },
+      reverse: { on: "profiles", has: "many", label: "ideas" },
+    },
+    reactionIdea: {
+      forward: {
+        on: "reactions",
+        has: "one",
+        label: "idea",
+        onDelete: "cascade",
+      },
+      reverse: { on: "ideas", has: "many", label: "reactions" },
+    },
+    reactionUser: {
+      forward: { on: "reactions", has: "one", label: "creator" },
+      reverse: { on: "profiles", has: "many", label: "reactions" },
     },
   },
 });
 
-// This helps TypeScript display nicer intellisense
 type _AppSchema = typeof _schema;
 interface AppSchema extends _AppSchema {}
 const schema: AppSchema = _schema;
