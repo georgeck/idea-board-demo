@@ -41,7 +41,7 @@ const NewIdeaForm = ({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-xl transition-transform hover:scale-105 hover:bg-blue-700"
+        className="fixed left-1/2 top-1/2 z-40 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-xl transition-transform hover:scale-105 hover:bg-blue-700"
         title="New Idea"
       >
         +
@@ -50,7 +50,8 @@ const NewIdeaForm = ({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 w-80 rounded-2xl bg-white p-4 shadow-2xl dark:bg-gray-900">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+      <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl dark:bg-gray-900">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <textarea
           ref={inputRef}
@@ -76,6 +77,7 @@ const NewIdeaForm = ({
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 };

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { id } from "@instantdb/react";
 import type { Editor } from "tldraw";
 import { db } from "@/lib/db";
 import { IdeasProvider } from "@/lib/ideas-context";
@@ -29,6 +30,11 @@ const IdeaBoard = ({
   const ideas: Idea[] = data?.ideas ?? [];
   const [editor, setEditor] = useState<Editor | null>(null);
   const syncingRef = useRef(false);
+  const ideasMapRef = useRef<Map<string, Idea>>(new Map());
+
+  useEffect(() => {
+    ideasMapRef.current = new Map(ideas.map((i) => [i.id, i]));
+  }, [ideas]);
 
   const handleEditorMount = useCallback((ed: Editor): void => {
     setEditor(ed);
@@ -50,6 +56,62 @@ const IdeaBoard = ({
             }),
           );
         }
+      }
+    });
+
+    ed.sideEffects.registerAfterDeleteHandler("shape", (shape) => {
+      if (syncingRef.current) return;
+      if (shape.type !== SHAPE_TYPE) return;
+      const ideaCardShape = shape as unknown as IdeaCardShape;
+      const ideaId = ideaCardShape.props?.ideaId;
+      if (ideaId) {
+        db.transact(db.tx.ideas[ideaId].delete());
+      }
+    });
+
+    ed.sideEffects.registerAfterCreateHandler("shape", (shape) => {
+      if (syncingRef.current) return;
+      if (shape.type !== SHAPE_TYPE) return;
+      const ideaCardShape = shape as unknown as IdeaCardShape;
+      const ideaId = ideaCardShape.props?.ideaId;
+      if (!ideaId) return;
+      if (toShapeId(ideaId) === shape.id) return;
+
+      const original = ideasMapRef.current.get(ideaId);
+      if (!original?.creator) return;
+
+      const creatorProfileId =
+        typeof original.creator === "object" &&
+        original.creator !== null &&
+        "id" in original.creator
+          ? (original.creator as { id: string }).id
+          : null;
+      if (!creatorProfileId) return;
+
+      const newIdeaId = id();
+      syncingRef.current = true;
+      try {
+        db.transact(
+          db.tx.ideas[newIdeaId]
+            .update({
+              content: original.content,
+              createdAt: Date.now(),
+              x: Math.round(ideaCardShape.x),
+              y: Math.round(ideaCardShape.y),
+            })
+            .link({ creator: creatorProfileId }),
+        );
+        ed.updateShape({
+          id: ideaCardShape.id,
+          type: SHAPE_TYPE,
+          props: {
+            ideaId: newIdeaId,
+            w: ideaCardShape.props?.w ?? 260,
+            h: ideaCardShape.props?.h ?? 220,
+          },
+        });
+      } finally {
+        syncingRef.current = false;
       }
     });
   }, []);
