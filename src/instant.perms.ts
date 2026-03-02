@@ -13,7 +13,7 @@ const rules = {
       view: "true",
       create: "true",
       update: "true",
-      delete: "auth.id in data.ref('creator.$user.id')",
+      delete: "true",
     },
   },
   reactions: {

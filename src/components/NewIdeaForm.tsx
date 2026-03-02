@@ -41,7 +41,7 @@ const NewIdeaForm = ({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed left-1/2 top-1/2 z-40 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-xl transition-transform hover:scale-105 hover:bg-blue-700"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-xl transition-transform hover:scale-105 hover:bg-blue-700"
         title="New Idea"
       >
         +
