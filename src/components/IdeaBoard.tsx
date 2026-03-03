@@ -91,6 +91,15 @@ const IdeaBoard = ({
       const newIdeaId = id();
       syncingRef.current = true;
       try {
+        ed.updateShape({
+          id: ideaCardShape.id,
+          type: SHAPE_TYPE,
+          props: {
+            ideaId: newIdeaId,
+            w: ideaCardShape.props?.w ?? 260,
+            h: ideaCardShape.props?.h ?? 220,
+          },
+        });
         db.transact(
           db.tx.ideas[newIdeaId]
             .update({
@@ -101,15 +110,6 @@ const IdeaBoard = ({
             })
             .link({ creator: creatorProfileId }),
         );
-        ed.updateShape({
-          id: ideaCardShape.id,
-          type: SHAPE_TYPE,
-          props: {
-            ideaId: newIdeaId,
-            w: ideaCardShape.props?.w ?? 260,
-            h: ideaCardShape.props?.h ?? 220,
-          },
-        });
       } finally {
         syncingRef.current = false;
       }
