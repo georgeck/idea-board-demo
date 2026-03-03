@@ -35,7 +35,6 @@ The name of the app is 'Idea Board'
 * Emoji reactions on each card: at least 8 options (👍 💡 🔥 ❤️ 😂 🤔 👀 🚀)
 * Multiple emojis can be selected per idea, each showing a count
 * Users can toggle their own reactions on/off
-* All ideas and reactions stored in localStorage
 
 ## AUTH
 
