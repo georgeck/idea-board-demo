@@ -10,6 +10,9 @@ A real-time collaborative idea board built with Next.js, InstantDB, and tldraw. 
 
 ## Prerequisites
 
+- [GitHub account](https://github.com) 
+- An InstantDB account (free tier available) - https://www.instantdb.com/ 
+- [Vercel.com](https://vercel.com) account for deployment (optional, but recommended for easy hosting)
 - [Node.js](https://nodejs.org/) 18+
 - [pnpm](https://pnpm.io/) 10+
 
@@ -25,6 +28,20 @@ pnpx create-instant-app
 ```
 
 This creates an app in your InstantDB dashboard and writes a `.env.local` file containing your `NEXT_PUBLIC_INSTANT_APP_ID`.
+
+#### IDE Setup
+Configure MCP for InstantDB in your IDE.
+
+```json
+{
+  "mcpServers": {
+    "InstantDB": {
+      "url": "https://mcp.instantdb.com/mcp",
+      "headers": {}
+    }
+  }
+}
+```
 
 ### 2. Clone this repo into the scaffolded directory
 

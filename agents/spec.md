@@ -1,6 +1,6 @@
 ## Idea Board Application
 
-Use InstantDB to create a shared Idea Board application where multiple users can post ideas in real time and react to each other's ideas with emojis. Ideas appear on a canvas (use tldraw@3.9.0 for the canvas API)
+Use InstantDB to create a shared Idea Board application where multiple users can post ideas in real time and react to each other's ideas with emojis. Ideas appear on a canvas (use tldraw@3.9.0 for the canvas API).
 Users post ideas and react with emojis. The code should be easy to read and follow along, not clever or over-engineered.
 The name of the app is 'Idea Board'
 
@@ -43,7 +43,7 @@ The name of the app is 'Idea Board'
 * After auth, ask for a display name if not already set, store in InstantDB user profile
 * Display name modal only appears if not already stored in InstantDB profile
 
-##DATA
+## DATA
 
 * Store ideas and reactions to InstantDB
 * Use db.useQuery to subscribe to ideas and reactions in real time
