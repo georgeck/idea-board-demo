@@ -75,7 +75,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 3. Set a display name (stored in your InstantDB profile).
 4. Post ideas — they appear as sticky notes on the shared canvas.
 5. Drag notes around; positions sync in real time for all users.
-6. React to ideas with emoji (👍 💡 🔥 ❤️ 😂 🤔 👀 🚀).
+6. React to ideas with emoji (👍 👎 🔥 ❤️ 🤔).
 
 ## Project structure
 
@@ -93,9 +93,9 @@ agents/
 
 ## Useful commands
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build |
-| `pnpx instant-cli push` | Push schema changes to InstantDB |
+| Command                 | Description                        |
+|-------------------------|------------------------------------|
+| `pnpm dev`              | Start dev server                   |
+| `pnpm build`            | Production build                   |
+| `pnpx instant-cli push` | Push schema changes to InstantDB   |
 | `pnpx instant-cli pull` | Pull schema changes from InstantDB |

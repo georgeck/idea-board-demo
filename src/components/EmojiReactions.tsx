@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { useIdeas } from "@/lib/ideas-context";
 import type { Reaction } from "@/types";
 
-const EMOJIS = ["👍", "💡", "🔥", "❤️", "😂", "🤔", "👀", "🚀"] as const;
+const EMOJIS = ["👍", "👎", "🔥", "❤️", "🤔"] as const;
 
 const EmojiReactions = ({
   ideaId,
@@ -52,15 +52,16 @@ const EmojiReactions = ({
   };
 
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex gap-1">
       {EMOJIS.map((emoji) => {
         const entry = grouped.get(emoji)!;
         const isActive = !!entry.mine;
         return (
           <button
             key={emoji}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => handleToggle(e, emoji, entry.mine)}
-            className={`pointer-events-auto flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors ${
+            className={`pointer-events-auto flex cursor-pointer items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors ${
               isActive
                 ? "bg-blue-100 ring-1 ring-blue-400 dark:bg-blue-900/50 dark:ring-blue-500"
                 : "bg-white/60 hover:bg-white/90 dark:bg-gray-700/60 dark:hover:bg-gray-600/80"
