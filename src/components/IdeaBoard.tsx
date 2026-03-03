@@ -29,6 +29,7 @@ const IdeaBoard = ({
 
   const ideas: Idea[] = data?.ideas ?? [];
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [editingIdeaId, setEditingIdeaId] = useState<string | null>(null);
   const syncingRef = useRef(false);
   const ideasMapRef = useRef<Map<string, Idea>>(new Map());
 
@@ -175,15 +176,23 @@ const IdeaBoard = ({
     );
   }
 
+  const editingIdea = editingIdeaId ? (ideas.find((i) => i.id === editingIdeaId) ?? null) : null;
+
   return (
     <IdeasProvider
       ideas={ideas}
       currentUserId={userId}
       currentProfileId={profileId}
+      editingIdeaId={editingIdeaId}
+      setEditingIdeaId={setEditingIdeaId}
     >
       <div className="h-screen w-screen">
         <Canvas onMount={handleEditorMount} />
-        <NewIdeaForm profileId={profileId} />
+        <NewIdeaForm
+          profileId={profileId}
+          editIdea={editingIdea ? { id: editingIdea.id, content: editingIdea.content } : null}
+          onClearEdit={() => setEditingIdeaId(null)}
+        />
         <UserBar />
       </div>
     </IdeasProvider>

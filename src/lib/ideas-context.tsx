@@ -7,6 +7,8 @@ interface IdeasContextValue {
   ideasMap: Map<string, Idea>;
   currentUserId: string;
   currentProfileId: string;
+  editingIdeaId: string | null;
+  setEditingIdeaId: (id: string | null) => void;
 }
 
 const IdeasContext = createContext<IdeasContextValue | null>(null);
@@ -21,11 +23,15 @@ export const IdeasProvider = ({
   ideas,
   currentUserId,
   currentProfileId,
+  editingIdeaId,
+  setEditingIdeaId,
   children,
 }: {
   ideas: Idea[];
   currentUserId: string;
   currentProfileId: string;
+  editingIdeaId: string | null;
+  setEditingIdeaId: (id: string | null) => void;
   children: React.ReactNode;
 }): React.ReactElement => {
   const ideasMap = useMemo(() => {
@@ -37,8 +43,8 @@ export const IdeasProvider = ({
   }, [ideas]);
 
   const value = useMemo(
-    () => ({ ideasMap, currentUserId, currentProfileId }),
-    [ideasMap, currentUserId, currentProfileId],
+    () => ({ ideasMap, currentUserId, currentProfileId, editingIdeaId, setEditingIdeaId }),
+    [ideasMap, currentUserId, currentProfileId, editingIdeaId, setEditingIdeaId],
   );
 
   return (

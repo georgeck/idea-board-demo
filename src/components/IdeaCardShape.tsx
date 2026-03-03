@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Geometry2d,
   HTMLContainer,
@@ -12,7 +12,6 @@ import {
   type RecordProps,
   type TLShape,
 } from "tldraw";
-import { db } from "@/lib/db";
 import { useIdeas } from "@/lib/ideas-context";
 import { timeAgo } from "@/lib/time";
 import EmojiReactions from "@/components/EmojiReactions";
@@ -50,20 +49,18 @@ const IdeaCardComponent = ({
 }: {
   shape: IdeaCardShape;
 }): React.ReactElement => {
-  const { ideasMap } = useIdeas();
+  const { ideasMap, setEditingIdeaId } = useIdeas();
   const idea = ideasMap.get(shape.props.ideaId);
   const editor = useEditor();
   const isEditing = useIsEditing(shape.id);
-  const [editContent, setEditContent] = useState(idea?.content ?? "");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // When tldraw enters edit mode (double-click), open the modal instead
   useEffect(() => {
-    if (!isEditing) setEditContent(idea?.content ?? "");
-  }, [idea?.content, isEditing]);
-
-  useEffect(() => {
-    if (isEditing) textareaRef.current?.focus();
-  }, [isEditing]);
+    if (isEditing && idea) {
+      editor.setEditingShape(null);
+      setEditingIdeaId(idea.id);
+    }
+  }, [isEditing, idea, editor, setEditingIdeaId]);
 
   if (!idea) {
     return (
@@ -79,47 +76,17 @@ const IdeaCardComponent = ({
   const creator = idea.creator;
   const displayName = creator?.displayName ?? "Anonymous";
 
-  const handleSave = (): void => {
-    const trimmed = editContent.trim();
-    if (trimmed && trimmed !== idea.content) {
-      db.transact(db.tx.ideas[idea.id].update({ content: trimmed }));
-    }
-    editor.setEditingShape(null);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-    e.stopPropagation();
-    if (e.key === "Escape") {
-      setEditContent(idea.content ?? "");
-      editor.setEditingShape(null);
-    }
-  };
-
   return (
     <HTMLContainer>
       <div
         className="flex h-full w-full flex-col rounded-xl p-4 shadow-lg"
         style={{ backgroundColor: bgColor }}
       >
-        {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="flex-1 resize-none rounded bg-white/40 p-1 text-sm leading-relaxed text-gray-800 outline-none focus:ring-1 focus:ring-blue-400"
-          />
-        ) : (
-          <p className="mb-2 flex-1 text-sm leading-relaxed text-gray-800 break-words">
-            {idea.content}
-          </p>
-        )}
+        <p className="mb-2 flex-1 text-sm leading-relaxed text-gray-800 break-words">
+          {idea.content}
+        </p>
         <div className="mt-auto space-y-2">
-          {!isEditing && (
-            <EmojiReactions ideaId={idea.id} reactions={idea.reactions ?? []} />
-          )}
+          <EmojiReactions ideaId={idea.id} reactions={idea.reactions ?? []} />
           <div className="flex items-center justify-between text-[11px] text-gray-500">
             <span className="max-w-[60%] truncate font-medium">
               {displayName}
