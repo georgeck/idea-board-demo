@@ -82,9 +82,21 @@ const IdeaCardComponent = ({
         className="flex h-full w-full flex-col rounded-xl p-4 shadow-lg"
         style={{ backgroundColor: bgColor }}
       >
-        <p className="mb-2 flex-1 text-sm leading-relaxed text-gray-800 break-words">
-          {idea.content}
-        </p>
+        <div className="mb-2 flex-1 overflow-hidden">
+          {idea.title && (
+            <p className="mb-1 text-sm font-semibold leading-snug text-gray-900 break-words">
+              {idea.title}
+            </p>
+          )}
+          {idea.content && (
+            <p
+              className="text-xs leading-relaxed text-gray-700 break-words"
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {idea.content}
+            </p>
+          )}
+        </div>
         <div className="mt-auto space-y-2">
           <EmojiReactions ideaId={idea.id} reactions={idea.reactions ?? []} />
           <div className="flex items-center justify-between text-[11px] text-gray-500">
@@ -108,7 +120,7 @@ export class IdeaCardShapeUtil extends ShapeUtil<IdeaCardShape> {
   };
 
   getDefaultProps(): IdeaCardProps {
-    return { ideaId: "", w: 260, h: 220 };
+    return { ideaId: "", w: 260, h: 250 };
   }
 
   getGeometry(shape: IdeaCardShape): Geometry2d {

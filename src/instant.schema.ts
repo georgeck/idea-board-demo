@@ -9,6 +9,7 @@ const _schema = i.schema({
       displayName: i.string(),
     }),
     ideas: i.entity({
+      title: i.string().optional(),
       content: i.string(),
       createdAt: i.number().indexed(),
       x: i.number(),

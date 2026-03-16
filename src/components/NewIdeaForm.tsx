@@ -10,19 +10,20 @@ const NewIdeaForm = ({
   onClearEdit,
 }: {
   profileId: string;
-  editIdea: { id: string; content: string } | null;
+  editIdea: { id: string; title: string; content: string } | null;
   onClearEdit: () => void;
 }): React.ReactElement => {
   const [isOpen, setIsOpen] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const isEditing = editIdea !== null;
   const modalOpen = isOpen || isEditing;
 
   useEffect(() => {
-    if (modalOpen && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (modalOpen && titleRef.current) {
+      titleRef.current.focus();
+      titleRef.current.select();
     }
   }, [modalOpen]);
 
@@ -33,18 +34,19 @@ const NewIdeaForm = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    const content = inputRef.current!.value.trim();
-    if (!content) return;
+    const title = titleRef.current!.value.trim();
+    const content = contentRef.current!.value.trim();
+    if (!title) return;
 
     if (isEditing) {
-      db.transact(db.tx.ideas[editIdea.id].update({ content }));
+      db.transact(db.tx.ideas[editIdea.id].update({ title, content }));
     } else {
       const x = 100 + Math.random() * 600;
       const y = 100 + Math.random() * 400;
       const ideaId = id();
       db.transact(
         db.tx.ideas[ideaId]
-          .update({ content, createdAt: Date.now(), x, y })
+          .update({ title, content, createdAt: Date.now(), x, y })
           .link({ creator: profileId }),
       );
     }
@@ -56,25 +58,38 @@ const NewIdeaForm = ({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-xl transition-transform hover:scale-105 hover:bg-blue-700"
+        className="fixed bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-2xl transition-all hover:scale-105 hover:bg-blue-700 hover:shadow-blue-200"
         title="New Idea"
       >
-        +
+        <span className="text-xl">💡</span>
+        Share an Idea
       </button>
     );
   }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
-      <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl dark:bg-gray-900">
+      <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
+        <h2 className="mb-3 text-base font-semibold text-gray-800 dark:text-white">
+          {isEditing ? "Edit Idea" : "New Idea"}
+        </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <textarea
-            key={editIdea?.id ?? "new"}
-            ref={inputRef}
-            defaultValue={editIdea?.content ?? ""}
-            placeholder="Share your idea..."
+          <input
+            key={`${editIdea?.id ?? "new"}-title`}
+            ref={titleRef}
+            type="text"
+            defaultValue={editIdea?.title ?? ""}
+            placeholder="Idea title…"
             required
-            rows={3}
+            maxLength={100}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+          />
+          <textarea
+            key={`${editIdea?.id ?? "new"}-content`}
+            ref={contentRef}
+            defaultValue={editIdea?.content ?? ""}
+            placeholder="Describe your idea…"
+            rows={4}
             maxLength={500}
             className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
           />

@@ -98,12 +98,13 @@ const IdeaBoard = ({
           props: {
             ideaId: newIdeaId,
             w: ideaCardShape.props?.w ?? 260,
-            h: ideaCardShape.props?.h ?? 220,
+            h: ideaCardShape.props?.h ?? 250,
           },
         });
         db.transact(
           db.tx.ideas[newIdeaId]
             .update({
+              title: original.title,
               content: original.content,
               createdAt: Date.now(),
               x: Math.round(ideaCardShape.x),
@@ -148,7 +149,7 @@ const IdeaBoard = ({
             type: SHAPE_TYPE,
             x: idea.x,
             y: idea.y,
-            props: { ideaId: idea.id, w: 260, h: 220 },
+            props: { ideaId: idea.id, w: 260, h: 250 },
           });
         } else {
           const dx = Math.abs(existing.x - idea.x);
@@ -190,7 +191,7 @@ const IdeaBoard = ({
         <Canvas onMount={handleEditorMount} />
         <NewIdeaForm
           profileId={profileId}
-          editIdea={editingIdea ? { id: editingIdea.id, content: editingIdea.content } : null}
+          editIdea={editingIdea ? { id: editingIdea.id, title: editingIdea.title ?? "", content: editingIdea.content } : null}
           onClearEdit={() => setEditingIdeaId(null)}
         />
         <UserBar />
