@@ -1,6 +1,14 @@
 import { i } from "@instantdb/react";
 
 const _schema = i.schema({
+  rooms: {
+    ideaBoard: {
+      presence: i.entity({
+        displayName: i.string(),
+        color: i.string(),
+      }),
+    },
+  },
   entities: {
     $users: i.entity({
       email: i.string().unique().indexed().optional(),

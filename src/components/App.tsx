@@ -49,7 +49,7 @@ const App = (): React.ReactElement => {
     return <DisplayNameModal userId={user.id} />;
   }
 
-  return <IdeaBoard userId={user.id} profileId={profile.id} />;
+  return <IdeaBoard userId={user.id} profileId={profile.id} displayName={profile.displayName} />;
 };
 
 export default App;

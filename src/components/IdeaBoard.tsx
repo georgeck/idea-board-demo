@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { id } from "@instantdb/react";
+import { id, Cursors } from "@instantdb/react";
 import type { Editor } from "tldraw";
 import { db } from "@/lib/db";
 import { IdeasProvider } from "@/lib/ideas-context";
@@ -14,14 +14,29 @@ const Canvas = dynamic(() => import("@/components/Canvas"), { ssr: false });
 
 const SHAPE_TYPE = "ideaCard" as const;
 
+const CURSOR_COLORS = [
+  "#e57373",
+  "#f06292",
+  "#ba68c8",
+  "#64b5f6",
+  "#4dd0e1",
+  "#81c784",
+  "#ffb74d",
+  "#a1887f",
+];
+
+const room = db.room("ideaBoard", "main");
+
 const toShapeId = (ideaId: string): string => `shape:${ideaId}`;
 
 const IdeaBoard = ({
   userId,
   profileId,
+  displayName,
 }: {
   userId: string;
   profileId: string;
+  displayName: string;
 }): React.ReactElement => {
   const { isLoading, data } = db.useQuery({
     ideas: { creator: {}, reactions: { creator: {} } },
@@ -32,6 +47,11 @@ const IdeaBoard = ({
   const [editingIdeaId, setEditingIdeaId] = useState<string | null>(null);
   const syncingRef = useRef(false);
   const ideasMapRef = useRef<Map<string, Idea>>(new Map());
+  const colorRef = useRef(
+    CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)],
+  );
+
+  db.rooms.useSyncPresence(room, { displayName, color: colorRef.current });
 
   useEffect(() => {
     ideasMapRef.current = new Map(ideas.map((i) => [i.id, i]));
@@ -187,7 +207,31 @@ const IdeaBoard = ({
       editingIdeaId={editingIdeaId}
       setEditingIdeaId={setEditingIdeaId}
     >
-      <div className="h-screen w-screen">
+      <Cursors
+        room={room}
+        className="h-screen w-screen"
+        userCursorColor={colorRef.current}
+        renderCursor={({ color, presence }) => (
+          <div style={{ pointerEvents: "none" }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill={color}>
+              <path d="M0 0 L0 12 L3.5 8.5 L6 14 L8 13 L5.5 7.5 L10 7.5Z" />
+            </svg>
+            <div
+              style={{
+                background: color,
+                color: "white",
+                borderRadius: 4,
+                padding: "2px 6px",
+                fontSize: 11,
+                marginTop: 2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {presence?.displayName ?? ""}
+            </div>
+          </div>
+        )}
+      >
         <Canvas onMount={handleEditorMount} />
         <NewIdeaForm
           profileId={profileId}
@@ -195,7 +239,7 @@ const IdeaBoard = ({
           onClearEdit={() => setEditingIdeaId(null)}
         />
         <UserBar />
-      </div>
+      </Cursors>
     </IdeasProvider>
   );
 };
