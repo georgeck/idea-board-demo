@@ -212,7 +212,7 @@ const IdeaBoard = ({
         className="h-screen w-screen"
         userCursorColor={colorRef.current}
         renderCursor={({ color, presence }) => (
-          <div style={{ pointerEvents: "none" }}>
+          <div style={{ pointerEvents: "none", display: "inline-block" }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill={color}>
               <path d="M0 0 L0 12 L3.5 8.5 L6 14 L8 13 L5.5 7.5 L10 7.5Z" />
             </svg>
