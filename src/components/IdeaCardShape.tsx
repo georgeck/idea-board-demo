@@ -49,7 +49,7 @@ const IdeaCardComponent = ({
 }: {
   shape: IdeaCardShape;
 }): React.ReactElement => {
-  const { ideasMap, setEditingIdeaId } = useIdeas();
+  const { ideasMap, canEdit, requestUpgrade, setEditingIdeaId } = useIdeas();
   const idea = ideasMap.get(shape.props.ideaId);
   const editor = useEditor();
   const isEditing = useIsEditing(shape.id);
@@ -58,9 +58,13 @@ const IdeaCardComponent = ({
   useEffect(() => {
     if (isEditing && idea) {
       editor.setEditingShape(null);
-      setEditingIdeaId(idea.id);
+      if (canEdit) {
+        setEditingIdeaId(idea.id);
+      } else {
+        requestUpgrade();
+      }
     }
-  }, [isEditing, idea, editor, setEditingIdeaId]);
+  }, [isEditing, idea, editor, canEdit, requestUpgrade, setEditingIdeaId]);
 
   if (!idea) {
     return (

@@ -6,20 +6,57 @@ import { db } from "@/lib/db";
 const Auth = (): React.ReactElement => {
   const [sentEmail, setSentEmail] = useState("");
 
+  const handleGuestSignIn = (): void => {
+    db.auth.signInAsGuest().catch((err: { body?: { message?: string } }) => {
+      alert("Uh oh: " + err.body?.message);
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl dark:bg-gray-900">
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-white">
           Idea Board
         </h1>
-        {!sentEmail ? (
-          <EmailStep onSendEmail={setSentEmail} />
-        ) : (
-          <CodeStep sentEmail={sentEmail} onBack={() => setSentEmail("")} />
+        <MagicCodeForm sentEmail={sentEmail} onSendEmail={setSentEmail} />
+        {!sentEmail && (
+          <>
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                or
+              </span>
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            </div>
+            <button
+              type="button"
+              onClick={handleGuestSignIn}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              Continue as Guest
+            </button>
+            <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-500">
+              Guests can view the live board. Sign in when you are ready to edit.
+            </p>
+          </>
         )}
       </div>
     </div>
   );
+};
+
+export const MagicCodeForm = ({
+  sentEmail,
+  onSendEmail,
+}: {
+  sentEmail: string;
+  onSendEmail: (email: string) => void;
+}): React.ReactElement => {
+  if (!sentEmail) {
+    return <EmailStep onSendEmail={onSendEmail} />;
+  }
+
+  return <CodeStep sentEmail={sentEmail} onBack={() => onSendEmail("")} />;
 };
 
 const EmailStep = ({

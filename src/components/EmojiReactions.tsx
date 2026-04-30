@@ -15,7 +15,7 @@ const EmojiReactions = ({
   ideaId: string;
   reactions: Reaction[];
 }): React.ReactElement => {
-  const { currentProfileId } = useIdeas();
+  const { currentProfileId, canEdit, requestUpgrade } = useIdeas();
 
   const grouped = new Map<string, { count: number; mine: Reaction | undefined }>();
   for (const emoji of EMOJIS) {
@@ -39,6 +39,11 @@ const EmojiReactions = ({
     e.stopPropagation();
     e.preventDefault();
 
+    if (!canEdit) {
+      requestUpgrade();
+      return;
+    }
+
     if (existing) {
       db.transact(db.tx.reactions[existing.id].delete());
     } else {
@@ -61,6 +66,7 @@ const EmojiReactions = ({
             key={emoji}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => handleToggle(e, emoji, entry.mine)}
+            title={canEdit ? undefined : "Sign in to react"}
             className={`pointer-events-auto flex cursor-pointer items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-colors ${
               isActive
                 ? "bg-blue-100 ring-1 ring-blue-400 dark:bg-blue-900/50 dark:ring-blue-500"

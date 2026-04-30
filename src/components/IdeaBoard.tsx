@@ -8,6 +8,7 @@ import type { Editor } from "tldraw";
 import { db } from "@/lib/db";
 import { IdeasProvider } from "@/lib/ideas-context";
 import NewIdeaForm from "@/components/NewIdeaForm";
+import { MagicCodeForm } from "@/components/Auth";
 import type { Idea } from "@/types";
 import type { AppSchema } from "@/instant.schema";
 import type { IdeaCardShape } from "@/components/IdeaCardShape";
@@ -73,11 +74,15 @@ const IdeaBoard = ({
   profileId,
   displayName,
   email,
+  isGuest,
+  readyToPost = true,
 }: {
   userId: string;
   profileId: string;
   displayName: string;
   email: string;
+  isGuest: boolean;
+  readyToPost?: boolean;
 }): React.ReactElement => {
   const { isLoading, data } = db.useQuery({
     ideas: { creator: {}, reactions: { creator: {} } },
@@ -86,20 +91,61 @@ const IdeaBoard = ({
   const ideas: Idea[] = data?.ideas ?? [];
   const [editor, setEditor] = useState<Editor | null>(null);
   const [editingIdeaId, setEditingIdeaId] = useState<string | null>(null);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const syncingRef = useRef(false);
   const ideasMapRef = useRef<Map<string, Idea>>(new Map());
   const colorRef = useRef(
     CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)],
   );
+  const guestNameRef = useRef(
+    `Guest ${userId.slice(0, 4).toUpperCase() || "User"}`,
+  );
+  const boardDisplayName = isGuest ? guestNameRef.current : displayName;
+  const canEdit = !isGuest && readyToPost;
+
+  // Handlers registered in onMount capture this ref so they always see the
+  // latest value, even if canEdit changes after mount (e.g. guest upgrade).
+  const canEditRef = useRef(canEdit);
+  useEffect(() => {
+    canEditRef.current = canEdit;
+  }, [canEdit]);
+
+  const requestUpgrade = useCallback((): void => {
+    setIsUpgradeOpen(true);
+  }, []);
+
+  const closeUpgrade = useCallback((): void => {
+    setIsUpgradeOpen(false);
+  }, []);
+
+  // Close the upgrade modal once the guest has been upgraded to a full user.
+  // At that point the display-name modal (rendered by App.tsx) takes over.
+  useEffect(() => {
+    if (!isGuest && isUpgradeOpen) {
+      setIsUpgradeOpen(false);
+    }
+  }, [isGuest, isUpgradeOpen]);
 
   useEffect(() => {
     ideasMapRef.current = new Map(ideas.map((i) => [i.id, i]));
   }, [ideas]);
 
+  useEffect(() => {
+    if (!editor) return;
+
+    editor.updateInstanceState({ isReadonly: !canEdit });
+    if (!canEdit) {
+      editor.setEditingShape(null);
+      editor.selectNone();
+      editor.setCurrentTool("hand");
+    }
+  }, [canEdit, editor]);
+
   const handleEditorMount = useCallback((ed: Editor): void => {
     setEditor(ed);
 
     ed.sideEffects.registerAfterChangeHandler("shape", (prev, next) => {
+      if (!canEditRef.current) return;
       if (syncingRef.current) return;
       if (next.type !== SHAPE_TYPE) return;
 
@@ -120,6 +166,7 @@ const IdeaBoard = ({
     });
 
     ed.sideEffects.registerAfterDeleteHandler("shape", (shape) => {
+      if (!canEditRef.current) return;
       if (syncingRef.current) return;
       if (shape.type !== SHAPE_TYPE) return;
       const ideaCardShape = shape as unknown as IdeaCardShape;
@@ -130,6 +177,7 @@ const IdeaBoard = ({
     });
 
     ed.sideEffects.registerAfterCreateHandler("shape", (shape) => {
+      if (!canEditRef.current) return;
       if (syncingRef.current) return;
       if (shape.type !== SHAPE_TYPE) return;
       const ideaCardShape = shape as unknown as IdeaCardShape;
@@ -182,6 +230,16 @@ const IdeaBoard = ({
 
     syncingRef.current = true;
 
+    // tldraw's readonly mode blocks `createShape`/`updateShape`/`deleteShapes`,
+    // which would prevent guests from seeing any ideas on the canvas. Turn it
+    // off for the duration of the sync run (user-originated mutations are
+    // already gated by `canEditRef` in the side-effect handlers) and restore
+    // it afterwards.
+    const wasReadonly = editor.getIsReadonly();
+    if (wasReadonly) {
+      editor.updateInstanceState({ isReadonly: false });
+    }
+
     try {
       const existingShapes = editor
         .getCurrentPageShapes()
@@ -224,6 +282,9 @@ const IdeaBoard = ({
         }
       }
     } finally {
+      if (wasReadonly) {
+        editor.updateInstanceState({ isReadonly: true });
+      }
       syncingRef.current = false;
     }
   }, [editor, ideas, isLoading]);
@@ -243,6 +304,8 @@ const IdeaBoard = ({
       ideas={ideas}
       currentUserId={userId}
       currentProfileId={profileId}
+      canEdit={canEdit}
+      requestUpgrade={requestUpgrade}
       editingIdeaId={editingIdeaId}
       setEditingIdeaId={setEditingIdeaId}
     >
@@ -274,15 +337,20 @@ const IdeaBoard = ({
         <Canvas onMount={handleEditorMount} />
         <NewIdeaForm
           profileId={profileId}
+          canEdit={canEdit}
+          onRequestUpgrade={requestUpgrade}
           editIdea={editingIdea ? { id: editingIdea.id, title: editingIdea.title ?? "", content: editingIdea.content } : null}
           onClearEdit={() => setEditingIdeaId(null)}
         />
-        <UserBar />
+        <UserBar isGuest={isGuest} onRequestUpgrade={requestUpgrade} />
         <PresenceAvatars
-          displayName={displayName}
+          displayName={boardDisplayName}
           email={email}
           color={colorRef.current}
         />
+        {isUpgradeOpen && (
+          <UpgradeModal onClose={closeUpgrade} />
+        )}
       </Cursors>
     </IdeasProvider>
   );
@@ -431,19 +499,75 @@ const getAvatarColorClassName = (colorKey: string | undefined): string => {
   );
 };
 
-const UserBar = (): React.ReactElement => {
+const UserBar = ({
+  isGuest,
+  onRequestUpgrade,
+}: {
+  isGuest: boolean;
+  onRequestUpgrade: () => void;
+}): React.ReactElement => {
   return (
     <div className="fixed left-4 top-4 z-40 flex items-center gap-2 rounded-xl bg-white/90 px-4 py-2 shadow-lg backdrop-blur dark:bg-gray-900/90">
       <h1 className="text-sm font-bold text-gray-800 dark:text-white">
         Idea Board
       </h1>
       <span className="text-gray-300 dark:text-gray-600">|</span>
+      {isGuest && (
+        <>
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+            Viewing as Guest
+          </span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <button
+            onClick={onRequestUpgrade}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Sign in to edit
+          </button>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+        </>
+      )}
       <button
         onClick={() => db.auth.signOut()}
         className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
       >
-        Sign out
+        {isGuest ? "Leave" : "Sign out"}
       </button>
+    </div>
+  );
+};
+
+const UpgradeModal = ({
+  onClose,
+}: {
+  onClose: () => void;
+}): React.ReactElement => {
+  const [sentEmail, setSentEmail] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Sign in to edit
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Verify your email, then choose a display name before posting ideas
+              or reactions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-2 py-1 text-lg leading-none text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            aria-label="Close upgrade dialog"
+          >
+            x
+          </button>
+        </div>
+        <MagicCodeForm sentEmail={sentEmail} onSendEmail={setSentEmail} />
+      </div>
     </div>
   );
 };

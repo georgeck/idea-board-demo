@@ -6,10 +6,14 @@ import { db } from "@/lib/db";
 
 const NewIdeaForm = ({
   profileId,
+  canEdit,
+  onRequestUpgrade,
   editIdea,
   onClearEdit,
 }: {
   profileId: string;
+  canEdit: boolean;
+  onRequestUpgrade: () => void;
   editIdea: { id: string; title: string; content: string } | null;
   onClearEdit: () => void;
 }): React.ReactElement => {
@@ -34,6 +38,11 @@ const NewIdeaForm = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
+    if (!canEdit) {
+      onRequestUpgrade();
+      return;
+    }
+
     const title = titleRef.current!.value.trim();
     const content = contentRef.current!.value.trim();
     if (!title) return;
@@ -55,6 +64,19 @@ const NewIdeaForm = ({
   };
 
   if (!modalOpen) {
+    if (!canEdit) {
+      return (
+        <button
+          onClick={onRequestUpgrade}
+          className="fixed bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-2xl transition-all hover:scale-105 hover:bg-blue-700 hover:shadow-blue-200"
+          title="Sign in to share an idea"
+        >
+          <span className="text-xl">💡</span>
+          Sign in to Share
+        </button>
+      );
+    }
+
     return (
       <button
         onClick={() => setIsOpen(true)}
