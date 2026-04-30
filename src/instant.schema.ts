@@ -5,6 +5,7 @@ const _schema = i.schema({
     ideaBoard: {
       presence: i.entity({
         displayName: i.string(),
+        email: i.string(),
         color: i.string(),
       }),
     },

@@ -3,29 +3,68 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { id, Cursors } from "@instantdb/react";
+import type { PresencePeer } from "@instantdb/react";
 import type { Editor } from "tldraw";
 import { db } from "@/lib/db";
 import { IdeasProvider } from "@/lib/ideas-context";
 import NewIdeaForm from "@/components/NewIdeaForm";
 import type { Idea } from "@/types";
+import type { AppSchema } from "@/instant.schema";
 import type { IdeaCardShape } from "@/components/IdeaCardShape";
 
 const Canvas = dynamic(() => import("@/components/Canvas"), { ssr: false });
 
 const SHAPE_TYPE = "ideaCard" as const;
+const ROOM_ID =
+  process.env.NEXT_PUBLIC_INSTANT_ROOM_ID ??
+  (process.env.NODE_ENV === "development" ? "main-dev" : "main");
 
 const CURSOR_COLORS = [
-  "#e57373",
-  "#f06292",
-  "#ba68c8",
-  "#64b5f6",
-  "#4dd0e1",
-  "#81c784",
-  "#ffb74d",
-  "#a1887f",
+  {
+    key: "rose",
+    cursor: "#e57373",
+    avatarClassName: "bg-rose-400 text-rose-950 dark:bg-rose-500 dark:text-rose-50",
+  },
+  {
+    key: "pink",
+    cursor: "#f06292",
+    avatarClassName: "bg-pink-400 text-pink-950 dark:bg-pink-500 dark:text-pink-50",
+  },
+  {
+    key: "purple",
+    cursor: "#ba68c8",
+    avatarClassName: "bg-purple-400 text-purple-950 dark:bg-purple-500 dark:text-purple-50",
+  },
+  {
+    key: "blue",
+    cursor: "#64b5f6",
+    avatarClassName: "bg-blue-400 text-blue-950 dark:bg-blue-500 dark:text-blue-50",
+  },
+  {
+    key: "cyan",
+    cursor: "#4dd0e1",
+    avatarClassName: "bg-cyan-400 text-cyan-950 dark:bg-cyan-500 dark:text-cyan-50",
+  },
+  {
+    key: "green",
+    cursor: "#81c784",
+    avatarClassName: "bg-green-400 text-green-950 dark:bg-green-500 dark:text-green-50",
+  },
+  {
+    key: "amber",
+    cursor: "#ffb74d",
+    avatarClassName: "bg-amber-300 text-amber-950 dark:bg-amber-500 dark:text-amber-50",
+  },
+  {
+    key: "stone",
+    cursor: "#a1887f",
+    avatarClassName: "bg-stone-400 text-stone-950 dark:bg-stone-500 dark:text-stone-50",
+  },
 ];
 
-const room = db.room("ideaBoard", "main");
+const room = db.room("ideaBoard", ROOM_ID);
+type IdeaBoardPeer = PresencePeer<AppSchema, "ideaBoard">;
+type CursorColor = (typeof CURSOR_COLORS)[number];
 
 const toShapeId = (ideaId: string): string => `shape:${ideaId}`;
 
@@ -33,10 +72,12 @@ const IdeaBoard = ({
   userId,
   profileId,
   displayName,
+  email,
 }: {
   userId: string;
   profileId: string;
   displayName: string;
+  email: string;
 }): React.ReactElement => {
   const { isLoading, data } = db.useQuery({
     ideas: { creator: {}, reactions: { creator: {} } },
@@ -50,8 +91,6 @@ const IdeaBoard = ({
   const colorRef = useRef(
     CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)],
   );
-
-  db.rooms.useSyncPresence(room, { displayName, color: colorRef.current });
 
   useEffect(() => {
     ideasMapRef.current = new Map(ideas.map((i) => [i.id, i]));
@@ -210,7 +249,7 @@ const IdeaBoard = ({
       <Cursors
         room={room}
         className="h-screen w-screen"
-        userCursorColor={colorRef.current}
+        userCursorColor={colorRef.current.cursor}
         renderCursor={({ color, presence }) => (
           <div style={{ pointerEvents: "none", display: "inline-block" }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill={color}>
@@ -239,8 +278,156 @@ const IdeaBoard = ({
           onClearEdit={() => setEditingIdeaId(null)}
         />
         <UserBar />
+        <PresenceAvatars
+          displayName={displayName}
+          email={email}
+          color={colorRef.current}
+        />
       </Cursors>
     </IdeasProvider>
+  );
+};
+
+const MAX_AVATARS = 6;
+
+const PresenceAvatars = ({
+  displayName,
+  email,
+  color,
+}: {
+  displayName: string;
+  email: string;
+  color: CursorColor;
+}): React.ReactElement | null => {
+  const { user: myPresence, peers, publishPresence } = db.rooms.usePresence(room, {
+    initialPresence: {
+      displayName,
+      email,
+      color: color.key,
+    },
+    keys: ["displayName", "email", "color"],
+  });
+
+  useEffect(() => {
+    publishPresence({
+      displayName,
+      email,
+      color: color.key,
+    });
+  }, [color.key, displayName, email, publishPresence]);
+
+  const presentUsers = [
+    ...(myPresence ? [{ key: "me", peer: myPresence }] : []),
+    ...Object.entries(peers).map(([peerId, peer]) => ({ key: peerId, peer })),
+  ];
+
+  if (presentUsers.length === 0) return null;
+
+  const dedupedUsers = presentUsers.filter((entry, index, collection) => {
+    const identity = getPresenceIdentity(entry.peer, entry.key);
+    return (
+      collection.findIndex((candidate) => {
+        return getPresenceIdentity(candidate.peer, candidate.key) === identity;
+      }) === index
+    );
+  });
+
+  const hasOverflow = dedupedUsers.length > MAX_AVATARS;
+  const visibleUsers = dedupedUsers.slice(0, hasOverflow ? MAX_AVATARS - 1 : MAX_AVATARS);
+  const overflowCount = dedupedUsers.length - visibleUsers.length;
+
+  return (
+    <div className="fixed right-4 top-4 z-40 flex items-center rounded-full bg-white/80 px-2 py-1.5 shadow-lg backdrop-blur dark:bg-gray-900/80">
+      <div className="flex -space-x-2">
+        {visibleUsers.map((peer) => (
+          <PresenceAvatar key={peer.key} peer={peer.peer} />
+        ))}
+        {overflowCount > 0 && (
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-semibold text-gray-600 shadow-sm dark:border-gray-900 dark:bg-gray-800 dark:text-gray-300"
+            title={`${overflowCount} more online`}
+          >
+            +{overflowCount}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PresenceAvatar = ({
+  peer,
+}: {
+  peer: IdeaBoardPeer;
+}): React.ReactElement => {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHasImageError(false);
+
+    getGravatarUrl(peer.email).then((url) => {
+      if (!cancelled) setAvatarUrl(url);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [peer.email]);
+
+  const name = peer.displayName || "Anonymous";
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
+
+  if (avatarUrl && !hasImageError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        title={name}
+        onError={() => setHasImageError(true)}
+        className="h-9 w-9 rounded-full border-2 border-white bg-gray-100 object-cover shadow-sm dark:border-gray-900"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-sm font-semibold shadow-sm dark:border-gray-900 ${getAvatarColorClassName(peer.color)}`}
+      title={name}
+    >
+      {initial}
+    </div>
+  );
+};
+
+const getGravatarUrl = async (email: string | undefined): Promise<string | null> => {
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (!normalizedEmail || !globalThis.crypto?.subtle) return null;
+
+  const data = new TextEncoder().encode(normalizedEmail);
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  return `https://www.gravatar.com/avatar/${hash}?s=72&d=404`;
+};
+
+const getPresenceIdentity = (peer: IdeaBoardPeer, fallbackKey: string): string => {
+  const normalizedEmail = peer.email?.trim().toLowerCase();
+  if (normalizedEmail) return normalizedEmail;
+
+  const normalizedName = peer.displayName.trim().toLowerCase();
+  if (normalizedName) return `name:${normalizedName}`;
+
+  return `peer:${fallbackKey}`;
+};
+
+const getAvatarColorClassName = (colorKey: string | undefined): string => {
+  return (
+    CURSOR_COLORS.find((color) => color.key === colorKey)?.avatarClassName ??
+    "bg-slate-400 text-slate-950 dark:bg-slate-500 dark:text-slate-50"
   );
 };
 
