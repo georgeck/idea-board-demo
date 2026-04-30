@@ -6,6 +6,7 @@ import { id, Cursors } from "@instantdb/react";
 import type { PresencePeer } from "@instantdb/react";
 import type { Editor } from "tldraw";
 import { db } from "@/lib/db";
+import { generateGuestName } from "@/lib/guest-name";
 import { IdeasProvider } from "@/lib/ideas-context";
 import NewIdeaForm from "@/components/NewIdeaForm";
 import { MagicCodeForm } from "@/components/Auth";
@@ -97,9 +98,7 @@ const IdeaBoard = ({
   const colorRef = useRef(
     CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)],
   );
-  const guestNameRef = useRef(
-    `Guest ${userId.slice(0, 4).toUpperCase() || "User"}`,
-  );
+  const guestNameRef = useRef(generateGuestName(userId));
   const boardDisplayName = isGuest ? guestNameRef.current : displayName;
   const canEdit = !isGuest && readyToPost;
 
